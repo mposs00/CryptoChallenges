@@ -18,11 +18,14 @@ double chi2(char* data, int data_len) {
 		else if (c >= 97 && c <= 122) letter_counts[c - 97]++;
 		else if (c >= 32 && c <= 126) ignored_chars++;
 		else if (c == 9 || c == 10 || c == 13) ignored_chars++;
-		else return 1000000;
+		else return 100000;
+		//else ignored_chars++;
 	}
 
 	double chi2 = 0;
 	int len = data_len - ignored_chars;
+	if (len < 1)
+		return 100000;
 	for (int i = 0; i < 26; i++) {
 		double observed = letter_counts[i];
 		double expected = len * ENGLISH_FREQ[i];

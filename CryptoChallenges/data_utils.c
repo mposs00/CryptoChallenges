@@ -66,3 +66,22 @@ ssize_t getline(char** lineptr, size_t* n, FILE* stream) {
     (*lineptr)[pos] = '\0';
     return pos;
 }
+
+// BE CAREFUL!
+// Chance of buffer overruns here. Ensure buf1 and buf2 are equal length...
+int hamming_distance(char* buf1, char* buf2, int len) {
+    int total = 0;
+
+    for (int i = 0; i < len; i++) {
+        int diff_bits = buf1[i] ^ buf2[i];
+        total += __popcnt(diff_bits);
+    }
+
+    return total;
+}
+
+int _min(int a, int b) {
+    if (a < b)
+        return a;
+    else return b;
+}
