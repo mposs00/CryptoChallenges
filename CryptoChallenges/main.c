@@ -6,7 +6,7 @@
 #include "frequency.h"
 #include "data_utils.h"
 
-#define MAX_KEYSIZE 64
+#define MAX_KEYSIZE 40
 
 int guess_line(char* bytes, int len) {
     //print_bytes(bytes, len);
@@ -122,13 +122,13 @@ int main()
             //print_bytes(transposed_blocks[x], num_blocks);
         }
 
-        printf("Guessed key:");
-        print_bytes(key_guess, keysize);
+        printf("Guessed key: %.*s\n", keysize, key_guess);
         char* plaintext = (char*)malloc(input_len);
         for (int i = 0; i < input_len; i++) {
             plaintext[i] = input[i] ^ key_guess[i % keysize];
         }
         printf("Result: %s\n", plaintext);
+        printf("---------------------------------------------\n");
 
         // Free blocks
         for (int i = 0; i < num_blocks; i++) {
