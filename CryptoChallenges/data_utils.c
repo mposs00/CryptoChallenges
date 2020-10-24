@@ -14,7 +14,7 @@ void hex_to_bytes(char hex_string[], int len, char* buf) {
 
 void print_bytes(char* data, int len) {
 	for (int i = 0; i < len; i++) {
-		printf("%x", (unsigned)(unsigned char)data[i]);
+		printf("%02x", (unsigned)(unsigned char)data[i]);
 	}
 	printf("\n");
 }
