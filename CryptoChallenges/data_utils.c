@@ -85,3 +85,27 @@ int _min(int a, int b) {
         return a;
     else return b;
 }
+
+int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, unsigned char* iv, unsigned char* plaintext)
+{
+    EVP_CIPHER_CTX* ctx;
+    
+    int len, plaintext_len;
+    if (!(ctx = EVP_CIPHER_CTX_new()))
+        ERR_print_errors_fp(stderr);
+
+    if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
+        ERR_print_errors_fp(stderr);
+
+    if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len) != 1)
+        ERR_print_errors_fp(stderr);
+
+    plaintext_len = len;
+
+    if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len))
+        ERR_print_errors_fp(stderr);
+    plaintext_len += len;
+
+    EVP_CIPHER_CTX_free(ctx);
+    return plaintext_len;
+}
