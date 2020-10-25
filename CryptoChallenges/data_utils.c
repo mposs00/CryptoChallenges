@@ -109,3 +109,14 @@ int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, u
     EVP_CIPHER_CTX_free(ctx);
     return plaintext_len;
 }
+
+char* pad(char* str, int len) {
+    char* padded = (char*)malloc(len);
+    int pad_val = (len - strlen(str));
+    memcpy(padded, str, strlen(str));
+    for (int i = strlen(str); i < len; i++) {
+        padded[i] = (char)(pad_val & 0xFF);
+    }
+
+    return padded;
+}
