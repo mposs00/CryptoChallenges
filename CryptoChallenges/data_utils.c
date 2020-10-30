@@ -14,7 +14,7 @@ void hex_to_bytes(char hex_string[], int len, char* buf) {
 
 void print_bytes(char* data, int len) {
 	for (int i = 0; i < len; i++) {
-		printf("%02x", (unsigned)(unsigned char)data[i]);
+		printf("%02x ", (unsigned)(unsigned char)data[i]);
 	}
 	printf("\n");
 }
@@ -86,28 +86,76 @@ int _min(int a, int b) {
     else return b;
 }
 
-int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, unsigned char* iv, unsigned char* plaintext)
-{
+void aes_dec_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key) {
     EVP_CIPHER_CTX* ctx;
-    
-    int len, plaintext_len;
+    int len = 0;
+
     if (!(ctx = EVP_CIPHER_CTX_new()))
         ERR_print_errors_fp(stderr);
 
-    if (EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, iv) != 1)
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+    if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL))
         ERR_print_errors_fp(stderr);
 
-    if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len) != 1)
+    if (1 != EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, 16))
         ERR_print_errors_fp(stderr);
-
-    plaintext_len = len;
-
-    if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len))
-        ERR_print_errors_fp(stderr);
-    plaintext_len += len;
 
     EVP_CIPHER_CTX_free(ctx);
-    return plaintext_len;
+}
+
+void aes_enc_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key) {
+    EVP_CIPHER_CTX* ctx;
+    int len = 0;
+
+    if (!(ctx = EVP_CIPHER_CTX_new()))
+        ERR_print_errors_fp(stderr);
+
+    EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+    if (1 != EVP_EncryptInit_ex(ctx, EVP_aes_128_ecb(), NULL, key, NULL))
+        ERR_print_errors_fp(stderr);
+
+    if (1 != EVP_EncryptUpdate(ctx, ciphertext, &len, plaintext, 16))
+        ERR_print_errors_fp(stderr);
+
+    EVP_CIPHER_CTX_free(ctx);
+}
+
+void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key, unsigned char* iv, int ciphertext_len) {
+    // Break the plaintext up into blocks
+    int num_blocks = ciphertext_len / 16;
+
+    // Allocate blocks
+    char** blocks = malloc(num_blocks * sizeof(char*));
+    for (int i = 0; i < num_blocks; i++) {
+        blocks[i] = malloc(16);
+        memcpy(blocks[i], ciphertext + (i * 16), 16);
+    }
+
+    // Encrypt blocks
+    char* last_block = malloc(16);
+    memcpy(last_block, iv, 16);
+    for (int i = 0; i < num_blocks; i++) {
+        char* block_pt = malloc(16);
+        aes_dec_block(block_pt, blocks[i], key);
+        // XOR plaintext
+        for (int y = 0; y < 16; y++) {
+            block_pt[y] = block_pt[y] ^ last_block[y];
+        }
+        // Update last block value
+        memcpy(last_block, blocks[i], 16);
+        // Update ciphertext
+        memcpy(plaintext + (i * 16), block_pt, 16);
+
+        free(block_pt);
+    }
+
+    // Free blocks
+    for (int i = 0; i < num_blocks; i++) {
+        free(blocks[i]);
+    }
+    free(blocks);
 }
 
 char* pad(char* str, int len) {

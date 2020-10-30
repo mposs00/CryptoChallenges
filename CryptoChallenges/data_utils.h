@@ -18,7 +18,9 @@ void print_bytes(char* data, int len);
 ssize_t getline(char** lineptr, size_t* n, FILE* stream);
 int _min(int a, int b);
 int hamming_distance(char* str1, char* str2, int len);
-int decrypt(unsigned char* ciphertext, int ciphertext_len, unsigned char* key, unsigned char* iv, unsigned char* plaintext);
 char* pad(char* str, int len);
+void aes_enc_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key);
+void aes_dec_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key);
+void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key, unsigned char* iv, int plaintext_len);
 
 #endif DATA_UTILS_H
