@@ -145,7 +145,7 @@ void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned c
         }
         // Update last block value
         memcpy(last_block, blocks[i], 16);
-        // Update ciphertext
+        // Update plaintext
         memcpy(plaintext + (i * 16), block_pt, 16);
 
         free(block_pt);
@@ -155,6 +155,7 @@ void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned c
     for (int i = 0; i < num_blocks; i++) {
         free(blocks[i]);
     }
+    free(last_block);
     free(blocks);
 }
 
