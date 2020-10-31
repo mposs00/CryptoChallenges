@@ -122,8 +122,58 @@ void aes_enc_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned
     EVP_CIPHER_CTX_free(ctx);
 }
 
-void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key, unsigned char* iv, int ciphertext_len) {
+void aes_enc_cbc(unsigned char* plaintext, unsigned char** ciphertext, unsigned char* key, unsigned char* iv, int plaintext_len, int* ciphertext_len_out) {
     // Break the plaintext up into blocks
+    int num_blocks = plaintext_len / 16;
+    if (plaintext_len % 16 != 0)
+        num_blocks++;
+
+    *ciphertext = malloc(num_blocks * 16);
+    *ciphertext_len_out = num_blocks * 16;
+
+    // Allocate blocks
+    char** blocks = malloc(num_blocks * sizeof(char*));
+    for (int i = 0; i < num_blocks; i++) {
+        blocks[i] = malloc(16);
+        if (i == num_blocks - 1 && plaintext_len % 16 != 0) {
+            char* unpadded_block = malloc(plaintext_len % 16);
+            memcpy(unpadded_block, plaintext + (i * 16), plaintext_len % 16);
+            char* padded_block = pad(unpadded_block, 16, plaintext_len % 16);
+            memcpy(blocks[i], padded_block, 16);
+            free(unpadded_block);
+            free(padded_block);
+        }
+        else {
+            memcpy(blocks[i], plaintext + (i * 16), 16);
+        }
+    }
+
+    // Encrypt blocks
+    char* last_block = malloc(16);
+    memcpy(last_block, iv, 16);
+    for (int i = 0; i < num_blocks; i++) {
+        char* block_ct = malloc(16);
+        // XOR plaintext
+        for (int y = 0; y < 16; y++) {
+            blocks[i][y] = blocks[i][y] ^ last_block[y];
+        }
+
+        aes_enc_block(blocks[i], block_ct, key);
+        memcpy(last_block, block_ct, 16);
+        memcpy(*ciphertext + (i * 16), block_ct, 16);
+
+        free(block_ct);
+    }
+
+    // Free blocks
+    for (int i = 0; i < num_blocks; i++) {
+        free(blocks[i]);
+    }
+    free(blocks);
+}
+
+void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key, unsigned char* iv, int ciphertext_len) {
+    // Break the ciphertext up into blocks
     int num_blocks = ciphertext_len / 16;
 
     // Allocate blocks
@@ -159,11 +209,11 @@ void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned c
     free(blocks);
 }
 
-char* pad(char* str, int len) {
+char* pad(char* str, int len, int inlen) {
     char* padded = (char*)malloc(len);
-    int pad_val = (len - strlen(str));
-    memcpy(padded, str, strlen(str));
-    for (int i = strlen(str); i < len; i++) {
+    int pad_val = (len - inlen);
+    memcpy(padded, str, inlen);
+    for (int i = inlen; i < len; i++) {
         padded[i] = (char)(pad_val & 0xFF);
     }
 
