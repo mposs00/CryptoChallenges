@@ -22,6 +22,10 @@ char* pad(char* str, int len);
 void aes_enc_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key);
 void aes_dec_block(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key);
 void aes_dec_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key, unsigned char* iv, int plaintext_len);
-void aes_enc_cbc(unsigned char* plaintext, unsigned char* ciphertext, unsigned char* key, unsigned char* iv, int plaintext_len, int* ciphertext_len_out);
+void aes_enc_cbc(unsigned char* plaintext, unsigned char** ciphertext, unsigned char* key, unsigned char* iv, int plaintext_len, int* ciphertext_len_out);
+int compare(void* a, void* b);
+char* black_box(char* str, int len, int* out_len);
+void rand_bytes(char* buf, int len);
+int detect_ecb(char* data, int len);
 
 #endif DATA_UTILS_H

@@ -14,6 +14,8 @@ void hex_to_bytes(char hex_string[], int len, char* buf) {
 
 void print_bytes(char* data, int len) {
 	for (int i = 0; i < len; i++) {
+        if (i % 16 == 0 && i > 0)
+            printf("\n");
 		printf("%02x ", (unsigned)(unsigned char)data[i]);
 	}
 	printf("\n");
@@ -218,4 +220,113 @@ char* pad(char* str, int len, int inlen) {
     }
 
     return padded;
+}
+
+int compare(void* a, void* b) {
+    char* buf1 = *(char**)a;
+    char* buf2 = *(char**)b;
+    return memcmp(buf1, buf2, 16);
+}
+
+// For challenge 11.
+// This function randomly encrypts some data with CBC or ECB
+// Some of the data can be controlled by the "attacker"
+char* black_box(char* str, int len, int* out_len) {
+    srand((unsigned int) time(NULL));
+    int prepend_size, append_size;
+    prepend_size = (rand() % 5) + 5;
+    append_size = (rand() % 5) + 5;
+    char* append_bytes = malloc(append_size);
+    char* prepend_bytes = malloc(prepend_size);
+    rand_bytes(append_bytes, append_size);
+    rand_bytes(prepend_bytes, prepend_size);
+
+    int total_len = prepend_size + len + append_size;
+    char* all_bytes = malloc(total_len);
+    memcpy(all_bytes, prepend_bytes, prepend_size);
+    memcpy(all_bytes + prepend_size, str, len);
+    memcpy(all_bytes + prepend_size + len, append_bytes, append_size);
+
+    free(prepend_bytes);
+    free(append_bytes);
+
+    char* ciphertext = malloc(total_len);
+    char* key = malloc(16);
+    char* iv = malloc(16);
+    rand_bytes(key, 16);
+    rand_bytes(iv, 16);
+    int ct_len = 0;
+
+    int use_ecb = rand() % 2;
+    if (use_ecb == 0) {
+        // I should have made this more abstract and put it in a function
+        // But oh well...
+        // This can also be done with just pointer manipulation
+        // Although, the padding probably still needs a memcpy
+        int num_blocks = total_len / 16;
+        if (total_len % 16 != 0)
+            num_blocks++;
+
+        char** blocks = malloc(num_blocks * sizeof(char*));
+        for (int i = 0; i < num_blocks; i++) {
+            blocks[i] = malloc(16);
+            if (i == num_blocks - 1 && total_len % 16 != 0) {
+                char* unpadded_block = malloc(total_len % 16);
+                memcpy(unpadded_block, all_bytes + (i * 16), total_len % 16);
+                char* padded_block = pad(unpadded_block, 16, total_len % 16);
+                memcpy(blocks[i], padded_block, 16);
+                free(unpadded_block);
+                free(padded_block);
+            }
+            else {
+                memcpy(blocks[i], all_bytes + (i * 16), 16);
+            }
+
+            aes_enc_block(blocks[i], ciphertext + (i * 16), key);
+            free(blocks[i]);
+        }
+        free(blocks);
+        ct_len = num_blocks * 16;
+    }
+    else {
+        aes_enc_cbc(all_bytes, &ciphertext, key, iv, total_len, &ct_len);
+    }
+
+    free(key);
+    free(iv);
+    *out_len = ct_len;
+    return ciphertext;
+}
+
+int detect_ecb(char* data, int len) {
+    int num_blocks = len / 16;
+    char** blocks = (char**)malloc(sizeof(char*) * num_blocks);
+
+    for (int i = 0; i < num_blocks; i++) {
+        blocks[i] = (char*)malloc(16);
+        memcpy(blocks[i], data + (i * 16), 16);
+    }
+
+    qsort(blocks, num_blocks, sizeof(char*), compare);
+
+    int duplicates = 0;
+
+    for (int i = 1; i < num_blocks; i++) {
+        if (memcmp(blocks[i - 1], blocks[i], 16) == 0) {
+            duplicates++;
+        }
+    }
+
+    for (int i = 0; i < num_blocks; i++) {
+        free(blocks[i]);
+    }
+    free(blocks);
+
+    return duplicates;
+}
+
+void rand_bytes(char* buf, int len) {
+    for (int i = 0; i < len; i++) {
+        buf[i] = rand() & 0xFF;
+    }
 }
